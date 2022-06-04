@@ -1,10 +1,10 @@
-export const PRECISION = 10000
-export const COUNT = 120
+export const PRECISION = 100000
+export const COUNT = 200
 export const GRAVITY = [0, 1000]
-export const DELAY_BETWEEN_BALLS = 200
+export const DELAY_BETWEEN_BALLS = 500
 export const SUB_STEPS = 3
-export const MIN_BALL_RADIUS = 7
-export const MAX_BALL_RADIUS = 30
+export const MIN_BALL_RADIUS = 10
+export const MAX_BALL_RADIUS = 35
 export const TARGET_UPS = 360
 export const COLORS = [
 	'Aquamarine',
