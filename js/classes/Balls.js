@@ -140,9 +140,9 @@ export default class Balls {
 		const x = this.side / 2
 		const y = this.container.y - this.container.r + 2 * max
 		FloatAtomics.store(this.x, i, x)
-		FloatAtomics.store(this.prevX, i, x - randomFloat(-2, 2))
+		FloatAtomics.store(this.prevX, i, x - dt * randomFloat(-300, 300))
 		FloatAtomics.store(this.y, i, y)
-		FloatAtomics.store(this.prevY, i, y + (randomInt(0, 1) ? -1 : 1))
+		FloatAtomics.store(this.prevY, i, y + dt * (randomInt(0, 1) ? -50 : 500))
 		Atomics.store(this.r, i, randomInt(min, max))
 		Atomics.store(this.alive, i, 1)
 		Atomics.store(this.color, i, randomInt(0, COLORS.length - 1))
