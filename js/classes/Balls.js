@@ -141,7 +141,7 @@ export default class Balls {
 		const x = this.side / 2
 		const y = this.container.y - this.container.r + 2 * max
 		FloatAtomics.store(this.x, i, x)
-		FloatAtomics.store(this.prevX, i, x - dt * randomFloat(-300, 300))
+		FloatAtomics.store(this.prevX, i, x - dt * (randomInt(0, 1) ? -300 : 300))
 		FloatAtomics.store(this.y, i, y)
 		FloatAtomics.store(this.prevY, i, y + dt * (randomInt(0, 1) ? -50 : 500))
 		Atomics.store(this.r, i, randomInt(min, max))
@@ -154,24 +154,30 @@ export default class Balls {
 	}
 
 	solveCollisions() {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = 0; i < this.lastBall; i++) {
 			if (Atomics.load(this.alive, i) === 0) {
 				continue
 			}
 			const x1 = FloatAtomics.load(this.x, i)
 			const y1 = FloatAtomics.load(this.y, i)
 			const r1 = Atomics.load(this.r, i)
-			for (let j = 0; j < this.count; j++) {
+			for (let j = 0; j < this.lastBall; j++) {
 				if (i === j || Atomics.load(this.alive, j) === 0) {
 					continue
 				}
-				const x2 = FloatAtomics.load(this.x, j)
-				const y2 = FloatAtomics.load(this.y, j)
 				const r2 = Atomics.load(this.r, j)
-				const dx = x1 - x2
-				const dy = y1 - y2
-				const distance = Math.hypot(dx, dy)
 				const minDistance = r1 + r2
+				const x2 = FloatAtomics.load(this.x, j)
+				const dx = x1 - x2
+				if (dx > minDistance || dx < -minDistance) {
+					continue
+				}
+				const y2 = FloatAtomics.load(this.y, j)
+				const dy = y1 - y2
+				if (dy > minDistance || dy < -minDistance) {
+					continue
+				}
+				const distance = Math.hypot(dx, dy)
 				if (distance < minDistance) {
 					const xRatio = dx / distance
 					const yRatio = dy / distance
