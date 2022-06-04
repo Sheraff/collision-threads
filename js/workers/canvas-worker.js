@@ -15,13 +15,10 @@ import Balls from "../classes/Balls.js"
 /** @type {Object<string, EntitySet>} */
 const entities = {}
 let paused = false
-let main, fade, ui, side
+let main, ui, side
 {
 	let port, started
 	onmessage = async function({data}) {
-		if (data.fade) {
-			fade = data.fade.getContext("2d", {alpha: false})
-		}
 		if (data.ui) {
 			ui = data.ui.getContext("2d")
 		}
@@ -34,7 +31,7 @@ let main, fade, ui, side
 		if (data.port) {
 			port = data.port
 		}
-		if (!started && main && fade && ui && side && port) {
+		if (!started && main && ui && side && port) {
 			started = true
 			start()
 			listen(port)
@@ -95,7 +92,7 @@ function loop() {
 			// draw
 			main.clearRect(0, 0, side, side)
 			Object.values(entities).forEach((entity) => {
-				entity.draw({main, fade, ui}, dt)
+				entity.draw({main, ui}, dt)
 			})
 
 			// metrics
