@@ -8,7 +8,9 @@
  */
 
 import Balls from "../classes/Balls.js"
-import { SUB_STEPS, TARGET_UPS } from "../utils/constants.js"
+import * as updateLoop from "./updateLoop.js"
+
+const child = new Worker('./support-worker.js', {type: 'module'})
 
 /** @type {Object<string, EntitySet>} */
 const entities = {}
@@ -19,6 +21,7 @@ let port
 	onmessage = async function({data}) {
 		if (data.side) {
 			side = data.side
+			child.postMessage({side})
 		}
 		if (data.port) {
 			port = data.port
@@ -27,9 +30,10 @@ let port
 			started = true
 			start(side)
 			dispatch(port)
-			
+			dispatch(child)
 		}
 		if (data.type === 'toggle') {
+			child.postMessage({type: 'toggle', status: data.status})
 			paused = !data.status
 			if(started) {
 				if (paused) {
@@ -43,13 +47,12 @@ let port
 }
 
 function dispatch(port){
+	const message = {
+		type: 'buffers',
+		entities: Object.fromEntries(Object.entries(entities).map(([type, entity]) => [type, entity.buffers]))
+	}
 	const interval = setInterval(() => {
-		port.postMessage(
-			{
-				type: 'buffers',
-				entities: Object.fromEntries(Object.entries(entities).map(([type, entity]) => [type, entity.buffers]))
-			}
-		)
+		port.postMessage(message)
 	}, 50)
 	port.onmessage = ({data}) => {
 		if(data.type === 'received') {
@@ -62,7 +65,7 @@ function dispatch(port){
  * @param {number} side 
  */
 function start(side) {
-	entities.balls = new Balls(side)
+	entities.balls = new Balls(side, {start: 0, increment: 2})
 	entities.balls.initBuffers()
 	entities.balls.initValues()
 	if (!paused) {
@@ -70,53 +73,10 @@ function start(side) {
 	}
 }
 
-const upsArray = []
-let loopTimeoutId
-function loop() {
-	let lastTime = performance.now()
-	const frame = () => {
-		loopTimeoutId = setTimeout(() => {
-			const time = performance.now()
-			const dt = (time - lastTime) / 1000
-			if (dt > 1 / TARGET_UPS) {
-				lastTime = time
-				const subDt = dt / SUB_STEPS
-				for (let i = 0; i < SUB_STEPS; i++) {
-					Object.values(entities).forEach((entity) => entity.step(subDt, entities))
-
-					upsArray.push(subDt)
-					if(upsArray.length > 100) {
-						upsArray.shift()
-					}
-				}
-			}
-			if (!paused) {
-				frame()
-			}
-		}, 1000 / TARGET_UPS)
-	}
-	frame()
-}
-
-const asapChannel = new MessageChannel()
-function setAsap(fn, delay) {
-	const time = performance.now()
-	asapChannel.port1.onmessage = () => {
-		const now = performance.now()
-		const delta = now - time
-		if (delta < delay) {
-			setAsap(fn, delay - delta)
-		} else {
-			fn()
-		}
-	}
-	asapChannel.port2.postMessage(null)
-}
-
 let metricsTimeoutId
 function metrics() {
 	metricsTimeoutId = setTimeout(() => {
-		const ups = upsArray.length / upsArray.reduce((a, b) => a + b)
+		const ups = updateLoop.getUps()
 		port.postMessage({
 			type: 'ups',
 			ups: Math.round(ups),
@@ -126,11 +86,11 @@ function metrics() {
 }
 
 function pause() {
-	clearTimeout(loopTimeoutId)
+	updateLoop.pause()
 	clearTimeout(metricsTimeoutId)
 }
 
 function play() {
-	loop()
+	updateLoop.play(entities)
 	metrics()
 }

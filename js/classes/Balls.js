@@ -21,7 +21,7 @@ function makeBuffer(type, length) {
 }
 
 export default class Balls {
-	constructor(side) {
+	constructor(side, responsibility = {start: 0, increment: 1}) {
 		this.buffers = {}
 		this.side = side
 		this.container = {
@@ -29,6 +29,7 @@ export default class Balls {
 			y: this.side / 2,
 			r: this.side / 2 - 100,
 		}
+		this.responsibility = responsibility
 	}
 
 	initBuffers() {
@@ -144,7 +145,7 @@ export default class Balls {
 	}
 
 	solveCollisions() {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = this.responsibility.start; i < this.count; i += this.responsibility.increment) {
 			if (Atomics.load(this.alive, i) === 0) {
 				continue
 			}
@@ -179,7 +180,7 @@ export default class Balls {
 	}
 
 	applyConstraints() {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = this.responsibility.start; i < this.count; i += this.responsibility.increment) {
 			const x = FloatAtomics.load(this.x, i)
 			const y = FloatAtomics.load(this.y, i)
 			const r = Atomics.load(this.r, i)
@@ -196,7 +197,7 @@ export default class Balls {
 	}
 
 	updatePosition(dt) {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = this.responsibility.start; i < this.count; i += this.responsibility.increment) {
 			const x = FloatAtomics.load(this.x, i)
 			const y = FloatAtomics.load(this.y, i)
 			const prevX = FloatAtomics.load(this.prevX, i)
@@ -215,7 +216,7 @@ export default class Balls {
 	}
 
 	accelerate(x, y) {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = this.responsibility.start; i < this.count; i += this.responsibility.increment) {
 			FloatAtomics.add(this.accelerationX, i, x)
 			FloatAtomics.add(this.accelerationY, i, y)
 		}
