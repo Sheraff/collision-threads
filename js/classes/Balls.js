@@ -5,6 +5,7 @@ import { randomFloat, randomInt } from "../utils/random.js"
 /** @type {Map<Function, number>} */
 const lengths = new Map([
 	[Uint32Array, 4],
+	[Uint16Array, 2],
 	[Uint8Array, 1],
 	[Int32Array, 4],
 ])
@@ -32,7 +33,7 @@ export default class Balls {
 	}
 
 	initBuffers() {
-		this.buffers.counters = makeBuffer(Uint8Array, 2)
+		this.buffers.counters = makeBuffer(Uint16Array, 2)
 		this.buffers.x = makeBuffer(Uint32Array, COUNT)
 		this.buffers.prevX = makeBuffer(Uint32Array, COUNT)
 		this.buffers.accelerationX = makeBuffer(Int32Array, COUNT)
