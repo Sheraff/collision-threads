@@ -1,20 +1,16 @@
 const uiCanvas = document.getElementById("ui");
-const fadeCanvas = document.getElementById("fade");
 const mainCanvas = document.getElementById("main");
 
 const side = Math.min(window.innerHeight, window.innerWidth) // * window.devicePixelRatio
 mainCanvas.height = side
 mainCanvas.width = side
-fadeCanvas.height = side
-fadeCanvas.width = side
 uiCanvas.height = side
 uiCanvas.width = side
 
-const canvasWorker = new Worker("js/workers/canvas-worker.js", { type: "module" })
-const processWorker = new Worker("js/workers/process-worker.js", { type: "module" });
+const canvasWorker = new Worker("js/workers/canvas.worker.js", { type: "module" })
+const processWorker = new Worker("js/workers/process.worker.js", { type: "module" });
 
 const offscreenMain = mainCanvas.transferControlToOffscreen()
-const offscreenFade = fadeCanvas.transferControlToOffscreen()
 const offscreenUi = uiCanvas.transferControlToOffscreen()
 
 requestAnimationFrame(() => {
@@ -22,9 +18,8 @@ requestAnimationFrame(() => {
 		canvasWorker.postMessage({
 			side: side,
 			main: offscreenMain,
-			fade: offscreenFade,
 			ui: offscreenUi,
-		}, [offscreenMain, offscreenFade, offscreenUi]);
+		}, [offscreenMain, offscreenUi]);
 		processWorker.postMessage({
 			side: side,
 		})
