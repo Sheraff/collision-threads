@@ -155,14 +155,11 @@ export default class Balls {
 
 	solveCollisions() {
 		for (let i = 0; i < this.lastBall; i++) {
-			if (Atomics.load(this.alive, i) === 0) {
-				continue
-			}
 			const x1 = FloatAtomics.load(this.x, i)
 			const y1 = FloatAtomics.load(this.y, i)
 			const r1 = Atomics.load(this.r, i)
 			for (let j = 0; j < this.lastBall; j++) {
-				if (i === j || Atomics.load(this.alive, j) === 0) {
+				if (i === j) {
 					continue
 				}
 				const r2 = Atomics.load(this.r, j)
@@ -195,38 +192,36 @@ export default class Balls {
 	}
 
 	applyConstraints() {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = 0; i < this.lastBall; i++) {
 			const x = FloatAtomics.load(this.x, i)
 			const y = FloatAtomics.load(this.y, i)
 			const r = Atomics.load(this.r, i)
 			const xToContainer = x - this.container.x
 			const yToContainer = y - this.container.y
 			const distanceToContainer = Math.hypot(xToContainer, yToContainer)
-			if (distanceToContainer > this.container.r - r) {
+			const minDistance = this.container.r - r
+			if (distanceToContainer > minDistance) {
 				const xRatio = xToContainer / distanceToContainer
 				const yRatio = yToContainer / distanceToContainer
-				FloatAtomics.store(this.x, i, this.container.x + xRatio * (this.container.r - r))
-				FloatAtomics.store(this.y, i, this.container.y + yRatio * (this.container.r - r))
+				FloatAtomics.store(this.x, i, this.container.x + xRatio * minDistance)
+				FloatAtomics.store(this.y, i, this.container.y + yRatio * minDistance)
 			}
 		}
 	}
 
 	updatePosition(dt) {
-		for (let i = 0; i < this.count; i++) {
+		for (let i = 0; i < this.lastBall; i++) {
 			const x = FloatAtomics.load(this.x, i)
-			const y = FloatAtomics.load(this.y, i)
-			const prevX = FloatAtomics.load(this.prevX, i)
-			const prevY = FloatAtomics.load(this.prevY, i)
-			const accelerationX = FloatAtomics.load(this.accelerationX, i)
-			const accelerationY = FloatAtomics.load(this.accelerationY, i)
+			const prevX = FloatAtomics.exchange(this.prevX, i, x)
+			const accelerationX = FloatAtomics.exchange(this.accelerationX, i, 0)
 			const velocityX = x - prevX
-			const velocityY = y - prevY
-			FloatAtomics.store(this.prevX, i, x)
-			FloatAtomics.store(this.prevY, i, y)
 			FloatAtomics.add(this.x, i, velocityX + accelerationX * dt**2)
+
+			const y = FloatAtomics.load(this.y, i)
+			const prevY = FloatAtomics.exchange(this.prevY, i, y)
+			const accelerationY = FloatAtomics.exchange(this.accelerationY, i, 0)
+			const velocityY = y - prevY
 			FloatAtomics.add(this.y, i, velocityY + accelerationY * dt**2)
-			FloatAtomics.store(this.accelerationX, i, 0)
-			FloatAtomics.store(this.accelerationY, i, 0)
 		}
 	}
 

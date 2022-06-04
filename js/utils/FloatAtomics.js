@@ -8,6 +8,10 @@ export function store(array, index, value) {
 	return Atomics.store(array, index, value * PRECISION)
 }
 
+export function exchange(array, index, value) {
+	return Atomics.exchange(array, index, value * PRECISION) / PRECISION
+}
+
 export function add(array, index, value) {
 	return Atomics.add(array, index, value * PRECISION)
 }
