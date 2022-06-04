@@ -7,8 +7,8 @@ mainCanvas.width = side
 uiCanvas.height = side
 uiCanvas.width = side
 
-const canvasWorker = new Worker("js/workers/canvas-worker.js", { type: "module" })
-const processWorker = new Worker("js/workers/process-worker.js", { type: "module" });
+const canvasWorker = new Worker("js/workers/canvas.worker.js", { type: "module" })
+const processWorker = new Worker("js/workers/process.worker.js", { type: "module" });
 
 const offscreenMain = mainCanvas.transferControlToOffscreen()
 const offscreenUi = uiCanvas.transferControlToOffscreen()
