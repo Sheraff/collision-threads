@@ -1,0 +1,17 @@
+html, body {
+	margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+	body {
+		background: black;
+	}
+}
+
+canvas {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vmin;
+	height: 100vmin;
+}
