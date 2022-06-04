@@ -92,6 +92,15 @@ export default class Balls {
 			ui.beginPath()
 			ui.arc(this.container.x, this.container.y, this.container.r, 0, 2 * Math.PI)
 			ui.fill()
+
+			ui.fillStyle = "black"
+			const max = this.side / 1000 * MAX_BALL_RADIUS
+			const x = this.container.x
+			const y = this.container.y - this.container.r + 2 * max
+			ui.beginPath()
+			ui.arc(x, y, max, 0, 2 * Math.PI)
+			ui.fill()
+
 			this.drawUi = false
 		}
 		for (let i = 0; i < this.count; i++) {
@@ -129,11 +138,11 @@ export default class Balls {
 		const min = this.side / 1000 * MIN_BALL_RADIUS
 		const max = this.side / 1000 * MAX_BALL_RADIUS
 		const x = this.side / 2
-		const y = this.container.y - this.container.r + max + 1
+		const y = this.container.y - this.container.r + 2 * max
 		FloatAtomics.store(this.x, i, x)
 		FloatAtomics.store(this.prevX, i, x - randomFloat(-2, 2))
 		FloatAtomics.store(this.y, i, y)
-		FloatAtomics.store(this.prevY, i, y - 1)
+		FloatAtomics.store(this.prevY, i, y + (randomInt(0, 1) ? -1 : 1))
 		Atomics.store(this.r, i, randomInt(min, max))
 		Atomics.store(this.alive, i, 1)
 		Atomics.store(this.color, i, randomInt(0, COLORS.length - 1))
