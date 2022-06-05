@@ -1,16 +1,13 @@
 import { COUNT, GRAVITY, DELAY_BETWEEN_BALLS, MAX_BALL_RADIUS, MIN_BALL_RADIUS, COLORS } from "../utils/constants.js"
-import * as FloatAtomics from "../utils/FloatAtomics.js"
 import { randomFloat, randomInt } from "../utils/random.js"
 
 /**
- * @param {Function} type 
  * @param {number} length 
  */
-function makeBuffer(type, length) {
-	const bytes = type.BYTES_PER_ELEMENT
+function makeBuffer(length) {
+	const array = new Array(length)
 	return {
-		array: new SharedArrayBuffer(length * bytes),
-		type: type.name,
+		array,
 	}
 }
 
@@ -26,23 +23,23 @@ export default class Balls {
 	}
 
 	initBuffers() {
-		this.buffers.counters = makeBuffer(Uint16Array, 2)
-		this.buffers.x = makeBuffer(Uint32Array, COUNT)
-		this.buffers.prevX = makeBuffer(Uint32Array, COUNT)
-		this.buffers.accelerationX = makeBuffer(Int32Array, COUNT)
-		this.buffers.y = makeBuffer(Uint32Array, COUNT)
-		this.buffers.prevY = makeBuffer(Uint32Array, COUNT)
-		this.buffers.accelerationY = makeBuffer(Int32Array, COUNT)
-		this.buffers.r = makeBuffer(Uint8Array, COUNT)
-		this.buffers.alive = makeBuffer(Uint8Array, COUNT)
-		this.buffers.color = makeBuffer(Uint8Array, COUNT)
+		this.buffers.counters = makeBuffer(2)
+		this.buffers.x = makeBuffer(COUNT)
+		this.buffers.prevX = makeBuffer(COUNT)
+		this.buffers.accelerationX = makeBuffer(COUNT)
+		this.buffers.y = makeBuffer(COUNT)
+		this.buffers.prevY = makeBuffer(COUNT)
+		this.buffers.accelerationY = makeBuffer(COUNT)
+		this.buffers.r = makeBuffer(COUNT)
+		this.buffers.alive = makeBuffer(COUNT)
+		this.buffers.color = makeBuffer(COUNT)
 
 		this.initViewsFromBuffers()
 	}
 
 	initViewsFromBuffers(buffers = this.buffers) {
-		Object.entries(buffers).forEach(([key, { array, type }]) => {
-			this[key] = new globalThis[type](array)
+		Object.entries(buffers).forEach(([key, { array }]) => {
+			this[key] = array
 		})
 	}
 
@@ -98,13 +95,13 @@ export default class Balls {
 			this.drawUi = false
 		}
 		for (let i = 0; i < this.count; i++) {
-			if (Atomics.load(this.alive, i) === 0) {
+			if (this.alive[i] === 0) {
 				continue
 			}
-			const x = FloatAtomics.load(this.x, i)
-			const y = FloatAtomics.load(this.y, i)
-			const r = Atomics.load(this.r, i)
-			const color = COLORS[Atomics.load(this.color, i)]
+			const x = this.x[i]
+			const y = this.y[i]
+			const r = this.r[i]
+			const color = COLORS[this.color[i]]
 			main.fillStyle = color
 			main.beginPath();
 			main.arc(x, y, r, 0, Math.PI * 2)
@@ -133,13 +130,13 @@ export default class Balls {
 		const max = this.side / 1000 * MAX_BALL_RADIUS
 		const x = this.side / 2
 		const y = this.container.y - this.container.r + 2 * max
-		FloatAtomics.store(this.x, i, x)
-		FloatAtomics.store(this.prevX, i, x - dt * (randomInt(0, 1) ? -300 : 300))
-		FloatAtomics.store(this.y, i, y)
-		FloatAtomics.store(this.prevY, i, y + dt * (randomInt(0, 1) ? -50 : 500))
-		Atomics.store(this.r, i, randomInt(min, max))
-		Atomics.store(this.alive, i, 1)
-		Atomics.store(this.color, i, randomInt(0, COLORS.length - 1))
+		this.x[i] = x
+		this.prevX[i] = x - dt * (randomInt(0, 1) ? -300 : 300)
+		this.y[i] = y
+		this.prevY[i] = y + dt * (randomInt(0, 1) ? -50 : 500)
+		this.r[i] = randomInt(min, max)
+		this.alive[i] = 1
+		this.color[i] = randomInt(0, COLORS.length - 1)
 	}
 
 	applyGravity() {
@@ -148,18 +145,18 @@ export default class Balls {
 
 	solveCollisions() {
 		for (let i = 0; i < this.lastBall - 1; i++) {
-			const x1 = FloatAtomics.load(this.x, i)
-			const y1 = FloatAtomics.load(this.y, i)
-			const r1 = Atomics.load(this.r, i)
+			const x1 = this.x[i]
+			const y1 = this.y[i]
+			const r1 = this.r[i]
 			for (let j = i + 1; j < this.lastBall; j++) {
-				const r2 = Atomics.load(this.r, j)
+				const r2 = this.r[j]
 				const minDistance = r1 + r2
-				const x2 = FloatAtomics.load(this.x, j)
+				const x2 = this.x[j]
 				const dx = x1 - x2
 				if (dx > minDistance || dx < -minDistance) {
 					continue
 				}
-				const y2 = FloatAtomics.load(this.y, j)
+				const y2 = this.y[j]
 				const dy = y1 - y2
 				if (dy > minDistance || dy < -minDistance) {
 					continue
@@ -172,10 +169,10 @@ export default class Balls {
 					const mass = r1 + r2
 					const r1Ratio = r2 / mass
 					const r2Ratio = r1 / mass
-					FloatAtomics.add(this.x, i, xRatio * 0.5 * delta * r1Ratio)
-					FloatAtomics.add(this.y, i, yRatio * 0.5 * delta * r1Ratio)
-					FloatAtomics.sub(this.x, j, xRatio * 0.5 * delta * r2Ratio)
-					FloatAtomics.sub(this.y, j, yRatio * 0.5 * delta * r2Ratio)
+					this.x[i] += xRatio * 0.5 * delta * r1Ratio
+					this.y[i] += yRatio * 0.5 * delta * r1Ratio
+					this.x[j] -= xRatio * 0.5 * delta * r2Ratio
+					this.y[j] -= yRatio * 0.5 * delta * r2Ratio
 				}
 			}
 		}
@@ -183,9 +180,9 @@ export default class Balls {
 
 	applyConstraints() {
 		for (let i = 0; i < this.lastBall; i++) {
-			const x = FloatAtomics.load(this.x, i)
-			const y = FloatAtomics.load(this.y, i)
-			const r = Atomics.load(this.r, i)
+			const x = this.x[i]
+			const y = this.y[i]
+			const r = this.r[i]
 			const xToContainer = x - this.container.x
 			const yToContainer = y - this.container.y
 			const distanceToContainer = Math.hypot(xToContainer, yToContainer)
@@ -193,32 +190,36 @@ export default class Balls {
 			if (distanceToContainer > minDistance) {
 				const xRatio = xToContainer / distanceToContainer
 				const yRatio = yToContainer / distanceToContainer
-				FloatAtomics.store(this.x, i, this.container.x + xRatio * minDistance)
-				FloatAtomics.store(this.y, i, this.container.y + yRatio * minDistance)
+				this.x[i] = this.container.x + xRatio * minDistance
+				this.y[i] = this.container.y + yRatio * minDistance
 			}
 		}
 	}
 
 	updatePosition(dt) {
 		for (let i = 0; i < this.lastBall; i++) {
-			const x = FloatAtomics.load(this.x, i)
-			const prevX = FloatAtomics.exchange(this.prevX, i, x)
-			const accelerationX = FloatAtomics.exchange(this.accelerationX, i, 0)
+			const x = this.x[i]
+			const prevX = this.prevX[i]
+			this.prevX[i] = x
+			const accelerationX = this.accelerationX[i]
+			this.accelerationX[i] = 0
 			const velocityX = x - prevX
-			FloatAtomics.add(this.x, i, velocityX + accelerationX * dt**2)
+			this.x[i] += velocityX + accelerationX * dt**2
 
-			const y = FloatAtomics.load(this.y, i)
-			const prevY = FloatAtomics.exchange(this.prevY, i, y)
-			const accelerationY = FloatAtomics.exchange(this.accelerationY, i, 0)
+			const y = this.y[i]
+			const prevY = this.prevY[i]
+			this.prevY[i] = y
+			const accelerationY = this.accelerationY[i]
+			this.accelerationY[i] = 0
 			const velocityY = y - prevY
-			FloatAtomics.add(this.y, i, velocityY + accelerationY * dt**2)
+			this.y[i] += velocityY + accelerationY * dt**2
 		}
 	}
 
 	accelerate(x, y) {
 		for (let i = 0; i < this.count; i++) {
-			FloatAtomics.add(this.accelerationX, i, x)
-			FloatAtomics.add(this.accelerationY, i, y)
+			this.accelerationX[i] = x
+			this.accelerationY[i] = y
 		}
 	}
 }
