@@ -1,3 +1,6 @@
+import * as draw from "./workers/drawLoop.js";
+import * as step from "./workers/stepLoop.js";
+
 const uiCanvas = document.getElementById("ui");
 const mainCanvas = document.getElementById("main");
 
@@ -7,58 +10,45 @@ mainCanvas.width = side
 uiCanvas.height = side
 uiCanvas.width = side
 
-const canvasWorker = new Worker("js/workers/canvas.worker.js", { type: "module" })
-const processWorker = new Worker("js/workers/process.worker.js", { type: "module" });
+const main = mainCanvas.getContext("2d")
+const ui = uiCanvas.getContext("2d")
 
-const offscreenMain = mainCanvas.transferControlToOffscreen()
-const offscreenUi = uiCanvas.transferControlToOffscreen()
+step.start(side)
+draw.start(side, {main, ui})
+const bufferStructure = Object.fromEntries(Object.entries(step.getEntities()).map(([type, entity]) => [type, entity.buffers]))
+draw.updateEntities(bufferStructure)
+metrics()
+play()
 
-requestAnimationFrame(() => {
-	requestAnimationFrame(() => {
-		canvasWorker.postMessage({
-			side: side,
-			main: offscreenMain,
-			ui: offscreenUi,
-		}, [offscreenMain, offscreenUi]);
-		processWorker.postMessage({
-			side: side,
-		})
-	})
-})
+var metricsTimeoutId
+function metrics() {
+	metricsTimeoutId = setTimeout(() => {
+		const ups = step.getUps()
+		draw.updateUps(ups)
+		metrics()
+	}, 1000)
+}
+
+var playing = true
+function play() {
+	playing = true
+	step.play()
+	draw.play({main, ui})
+}
+function pause(){
+	playing = false
+	step.pause()
+	draw.pause()
+}
 
 
-const channel = new MessageChannel();
-canvasWorker.postMessage({port: channel.port1}, [channel.port1]);
-processWorker.postMessage({port: channel.port2}, [channel.port2]);
-
-mainCanvas.addEventListener('click', ({x, y}) => {
-	processWorker.postMessage({
-		type: 'mouse',
-		mouse: {
-			x: x * side / mainCanvas.offsetWidth,
-			y: y * side / mainCanvas.offsetHeight,
-		}
-	})
-})
-window.addEventListener('keydown', (event) => {
-	if(event.key === 'Escape') {
-		event.preventDefault()
-		processWorker.postMessage({
-			type: 'mouse',
-			mouse: null
-		})
-	}
-})
-
-let playing = true
 document.addEventListener("visibilitychange", () => {
 	if(playing) {
-		const message = {
-			type: 'toggle',
-			status: document.visibilityState === 'visible'
+		if(document.visibilityState === 'visible') {
+			play()
+		} else {
+			pause()
 		}
-		processWorker.postMessage(message)
-		canvasWorker.postMessage(message)
 	}
 })
 
@@ -66,11 +56,10 @@ window.addEventListener('keydown', (event) => {
 	if(event.key === ' ') {
 		event.preventDefault()
 		playing = !playing
-		const message = {
-			type: 'toggle',
-			status: playing
+		if(playing) {
+			play()
+		} else {
+			pause()
 		}
-		processWorker.postMessage(message)
-		canvasWorker.postMessage(message)
 	}
 })
