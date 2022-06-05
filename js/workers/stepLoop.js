@@ -40,21 +40,6 @@ export function loop() {
 	frame()
 }
 
-const asapChannel = new MessageChannel()
-function setAsap(fn, delay) {
-	const time = performance.now()
-	asapChannel.port1.onmessage = () => {
-		const now = performance.now()
-		const delta = now - time
-		if (delta < delay) {
-			setAsap(fn, delay - delta)
-		} else {
-			fn()
-		}
-	}
-	asapChannel.port2.postMessage(null)
-}
-
 export function getEntities(){
 	return entities
 }
