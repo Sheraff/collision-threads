@@ -52,13 +52,14 @@ window.addEventListener('keydown', (event) => {
 
 let playing = true
 document.addEventListener("visibilitychange", () => {
-	playing = document.visibilityState === 'visible'
-	const message = {
-		type: 'toggle',
-		status: playing
+	if(playing) {
+		const message = {
+			type: 'toggle',
+			status: document.visibilityState === 'visible'
+		}
+		processWorker.postMessage(message)
+		canvasWorker.postMessage(message)
 	}
-	processWorker.postMessage(message)
-	canvasWorker.postMessage(message)
 })
 
 window.addEventListener('keydown', (event) => {
