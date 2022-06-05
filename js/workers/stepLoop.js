@@ -12,11 +12,11 @@ export function start(balls, side) {
 }
 
 const upsArray = []
-let loopTimeoutId
+let rafId
 export function loop() {
 	let lastTime = performance.now()
 	const frame = () => {
-		loopTimeoutId = setTimeout(() => {
+		rafId = requestAnimationFrame(() => {
 			const time = performance.now()
 			const dt = (time - lastTime) / 1000
 			lastTime = time
@@ -32,24 +32,9 @@ export function loop() {
 			if (!paused) {
 				frame()
 			}
-		}, 1000 / TARGET_UPS)
+		})
 	}
 	frame()
-}
-
-const asapChannel = new MessageChannel()
-function setAsap(fn, delay) {
-	const time = performance.now()
-	asapChannel.port1.onmessage = () => {
-		const now = performance.now()
-		const delta = now - time
-		if (delta < delay) {
-			setAsap(fn, delay - delta)
-		} else {
-			fn()
-		}
-	}
-	asapChannel.port2.postMessage(null)
 }
 
 export function getUps() {
@@ -59,7 +44,7 @@ export function getUps() {
 
 export function pause() {
 	paused = true
-	clearTimeout(loopTimeoutId)
+	clearTimeout(rafId)
 }
 
 export function play() {
