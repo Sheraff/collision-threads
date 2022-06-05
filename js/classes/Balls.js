@@ -1,18 +1,77 @@
 import { COUNT, GRAVITY, DELAY_BETWEEN_BALLS, MAX_BALL_RADIUS, MIN_BALL_RADIUS, COLORS } from "../utils/constants.js"
 import { randomFloat, randomInt } from "../utils/random.js"
 
-/**
- * @param {number} length 
- */
-function makeBuffer(length) {
-	const array = new Array(length)
-	return {
-		array,
+class Ball {
+	constructor(x, y, prevX, prevY, r, color) {
+		this.x = x
+		this.y = y
+		this.prevX = prevX
+		this.prevY = prevY
+		this.r = r
+		this.color = color
+		this.accelerationX = 0
+		this.accelerationY = 0
+	}
+
+	draw(context) {
+		const x = this.x
+		const y = this.y
+		const r = this.r
+		const color = COLORS[this.color]
+		context.fillStyle = color
+		context.beginPath();
+		context.arc(x, y, r, 0, Math.PI * 2)
+		context.fill()
+	}
+
+	applyGravity() {
+		this.accelerate(...GRAVITY)
+	}
+
+	accelerate(x, y) {
+		this.accelerationX = x
+		this.accelerationY = y
+	}
+
+	applyConstraints(container) {
+		const x = this.x
+		const y = this.y
+		const r = this.r
+		const xToContainer = x - container.x
+		const yToContainer = y - container.y
+		const distanceToContainer = Math.hypot(xToContainer, yToContainer)
+		const minDistance = container.r - r
+		if (distanceToContainer > minDistance) {
+			const xRatio = xToContainer / distanceToContainer
+			const yRatio = yToContainer / distanceToContainer
+			this.x = container.x + xRatio * minDistance
+			this.y = container.y + yRatio * minDistance
+		}
+	}
+
+	updatePosition(dt) {
+		const x = this.x
+		const prevX = this.prevX
+		this.prevX = x
+		const accelerationX = this.accelerationX
+		this.accelerationX = 0
+		const velocityX = x - prevX
+		this.x += velocityX + accelerationX * dt**2
+
+		const y = this.y
+		const prevY = this.prevY
+		this.prevY = y
+		const accelerationY = this.accelerationY
+		this.accelerationY = 0
+		const velocityY = y - prevY
+		this.y += velocityY + accelerationY * dt**2
 	}
 }
 
 export default class Balls {
 	constructor(side) {
+		this.count = COUNT
+		this.lastBall = 0
 		this.buffers = {}
 		this.side = side
 		this.container = {
@@ -20,56 +79,7 @@ export default class Balls {
 			y: this.side / 2,
 			r: this.side / 2 - 100,
 		}
-	}
-
-	initBuffers() {
-		this.buffers.counters = makeBuffer(2)
-		this.buffers.x = makeBuffer(COUNT)
-		this.buffers.prevX = makeBuffer(COUNT)
-		this.buffers.accelerationX = makeBuffer(COUNT)
-		this.buffers.y = makeBuffer(COUNT)
-		this.buffers.prevY = makeBuffer(COUNT)
-		this.buffers.accelerationY = makeBuffer(COUNT)
-		this.buffers.r = makeBuffer(COUNT)
-		this.buffers.alive = makeBuffer(COUNT)
-		this.buffers.color = makeBuffer(COUNT)
-
-		this.initViewsFromBuffers()
-	}
-
-	initViewsFromBuffers(buffers = this.buffers) {
-		Object.entries(buffers).forEach(([key, { array }]) => {
-			this[key] = array
-		})
-	}
-
-	initValues() {
-		this.count = COUNT
-		this.lastBall = 0
-		this.x.fill(0)
-		this.prevX.fill(0)
-		this.accelerationX.fill(0)
-		this.y.fill(0)
-		this.prevY.fill(0)
-		this.accelerationY.fill(0)
-		this.r.fill(0)
-		this.alive.fill(0)
-	}
-
-	get count() {
-		return this.counters[0]
-	}
-
-	set count(number) {
-		this.counters[0] = number
-	}
-
-	get lastBall() {
-		return this.counters[1]
-	}
-
-	set lastBall(index) {
-		this.counters[1] = index
+		this.balls = []
 	}
 
 	drawUi = true
@@ -94,27 +104,21 @@ export default class Balls {
 
 			this.drawUi = false
 		}
-		for (let i = 0; i < this.count; i++) {
-			if (this.alive[i] === 0) {
-				continue
-			}
-			const x = this.x[i]
-			const y = this.y[i]
-			const r = this.r[i]
-			const color = COLORS[this.color[i]]
-			main.fillStyle = color
-			main.beginPath();
-			main.arc(x, y, r, 0, Math.PI * 2)
-			main.fill()
+		for (let i = 0; i < this.lastBall; i++) {
+			this.balls[i].draw(main)
 		}
 	}
 
 	step(dt, entities) {
 		this.addBall(dt)
-		this.applyGravity()
-		this.applyConstraints()
+		for (let i = 0; i < this.lastBall; i++) {
+			this.balls[i].applyGravity()
+			this.balls[i].applyConstraints(this.container)
+		}
 		this.solveCollisions()
-		this.updatePosition(dt)
+		for (let i = 0; i < this.lastBall; i++) {
+			this.balls[i].updatePosition(dt)
+		}
 	}
 
 	lastBallDelay = 0
@@ -130,33 +134,27 @@ export default class Balls {
 		const max = this.side / 1000 * MAX_BALL_RADIUS
 		const x = this.side / 2
 		const y = this.container.y - this.container.r + 2 * max
-		this.x[i] = x
-		this.prevX[i] = x - dt * (randomInt(0, 1) ? -300 : 300)
-		this.y[i] = y
-		this.prevY[i] = y + dt * (randomInt(0, 1) ? -50 : 500)
-		this.r[i] = randomInt(min, max)
-		this.alive[i] = 1
-		this.color[i] = randomInt(0, COLORS.length - 1)
-	}
-
-	applyGravity() {
-		this.accelerate(...GRAVITY)
+		const prevX = x - dt * (randomInt(0, 1) ? -300 : 300)
+		const prevY = y + dt * (randomInt(0, 1) ? -50 : 500)
+		const r = randomInt(min, max)
+		const color = randomInt(0, COLORS.length - 1)
+		this.balls.push(new Ball(x, y, prevX, prevY, r, color))
 	}
 
 	solveCollisions() {
 		for (let i = 0; i < this.lastBall - 1; i++) {
-			const x1 = this.x[i]
-			const y1 = this.y[i]
-			const r1 = this.r[i]
+			const x1 = this.balls[i].x
+			const y1 = this.balls[i].y
+			const r1 = this.balls[i].r
 			for (let j = i + 1; j < this.lastBall; j++) {
-				const r2 = this.r[j]
+				const r2 = this.balls[j].r
 				const minDistance = r1 + r2
-				const x2 = this.x[j]
+				const x2 = this.balls[j].x
 				const dx = x1 - x2
 				if (dx > minDistance || dx < -minDistance) {
 					continue
 				}
-				const y2 = this.y[j]
+				const y2 = this.balls[j].y
 				const dy = y1 - y2
 				if (dy > minDistance || dy < -minDistance) {
 					continue
@@ -169,57 +167,12 @@ export default class Balls {
 					const mass = r1 + r2
 					const r1Ratio = r2 / mass
 					const r2Ratio = r1 / mass
-					this.x[i] += xRatio * 0.5 * delta * r1Ratio
-					this.y[i] += yRatio * 0.5 * delta * r1Ratio
-					this.x[j] -= xRatio * 0.5 * delta * r2Ratio
-					this.y[j] -= yRatio * 0.5 * delta * r2Ratio
+					this.balls[i].x += xRatio * 0.5 * delta * r1Ratio
+					this.balls[i].y += yRatio * 0.5 * delta * r1Ratio
+					this.balls[j].x -= xRatio * 0.5 * delta * r2Ratio
+					this.balls[j].y -= yRatio * 0.5 * delta * r2Ratio
 				}
 			}
-		}
-	}
-
-	applyConstraints() {
-		for (let i = 0; i < this.lastBall; i++) {
-			const x = this.x[i]
-			const y = this.y[i]
-			const r = this.r[i]
-			const xToContainer = x - this.container.x
-			const yToContainer = y - this.container.y
-			const distanceToContainer = Math.hypot(xToContainer, yToContainer)
-			const minDistance = this.container.r - r
-			if (distanceToContainer > minDistance) {
-				const xRatio = xToContainer / distanceToContainer
-				const yRatio = yToContainer / distanceToContainer
-				this.x[i] = this.container.x + xRatio * minDistance
-				this.y[i] = this.container.y + yRatio * minDistance
-			}
-		}
-	}
-
-	updatePosition(dt) {
-		for (let i = 0; i < this.lastBall; i++) {
-			const x = this.x[i]
-			const prevX = this.prevX[i]
-			this.prevX[i] = x
-			const accelerationX = this.accelerationX[i]
-			this.accelerationX[i] = 0
-			const velocityX = x - prevX
-			this.x[i] += velocityX + accelerationX * dt**2
-
-			const y = this.y[i]
-			const prevY = this.prevY[i]
-			this.prevY[i] = y
-			const accelerationY = this.accelerationY[i]
-			this.accelerationY[i] = 0
-			const velocityY = y - prevY
-			this.y[i] += velocityY + accelerationY * dt**2
-		}
-	}
-
-	accelerate(x, y) {
-		for (let i = 0; i < this.count; i++) {
-			this.accelerationX[i] = x
-			this.accelerationY[i] = y
 		}
 	}
 }

@@ -1,12 +1,10 @@
-import Balls from "../classes/Balls.js"
-
 const entities = {}
 let side
 let processUps
 
-export function start(_side, {ui}) {
+export function start(balls, _side, {ui}) {
 	side = _side
-	entities.balls = new Balls(side)
+	entities.balls = balls
 
 	ui.strokeStyle = "darkgray"
 	ui.rect(0, 0, side, side)
@@ -57,12 +55,6 @@ export function loop({main, ui}) {
 
 export function updateUps(ups) {
 	processUps = ups
-}
-
-export function updateEntities(bufferStructure){
-	Object.entries(bufferStructure).forEach(([type, entity]) => {
-		entities[type].initViewsFromBuffers(entity)
-	})
 }
 
 export function pause() {

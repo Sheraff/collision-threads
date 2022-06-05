@@ -1,3 +1,4 @@
+import Balls from "./classes/Balls.js";
 import * as draw from "./workers/drawLoop.js";
 import * as step from "./workers/stepLoop.js";
 
@@ -17,10 +18,9 @@ let main, ui
 }
 
 {
-	step.start(side)
-	draw.start(side, {main, ui})
-	const bufferStructure = Object.fromEntries(Object.entries(step.getEntities()).map(([type, entity]) => [type, entity.buffers]))
-	draw.updateEntities(bufferStructure)
+	const balls = new Balls(side)
+	step.start(balls, side)
+	draw.start(balls, side, {main, ui})
 	play()
 }
 

@@ -1,5 +1,4 @@
 
-import Balls from "../classes/Balls.js"
 import { SUB_STEPS, TARGET_UPS } from "../utils/constants.js"
 
 let paused
@@ -8,10 +7,8 @@ const entities = {}
 /**
  * @param {number} side 
  */
-export function start(side) {
-	entities.balls = new Balls(side)
-	entities.balls.initBuffers()
-	entities.balls.initValues()
+export function start(balls, side) {
+	entities.balls = balls
 }
 
 const upsArray = []
@@ -53,10 +50,6 @@ function setAsap(fn, delay) {
 		}
 	}
 	asapChannel.port2.postMessage(null)
-}
-
-export function getEntities(){
-	return entities
 }
 
 export function getUps() {
