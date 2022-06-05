@@ -2,21 +2,14 @@ import { COUNT, GRAVITY, DELAY_BETWEEN_BALLS, MAX_BALL_RADIUS, MIN_BALL_RADIUS, 
 import * as FloatAtomics from "../utils/FloatAtomics.js"
 import { randomFloat, randomInt } from "../utils/random.js"
 
-/** @type {Map<Function, number>} */
-const lengths = new Map([
-	[Uint32Array, 4],
-	[Uint16Array, 2],
-	[Uint8Array, 1],
-	[Int32Array, 4],
-])
-
 /**
  * @param {Function} type 
  * @param {number} length 
  */
 function makeBuffer(type, length) {
+	const bytes = type.BYTES_PER_ELEMENT
 	return {
-		array: new SharedArrayBuffer(length * lengths.get(type)),
+		array: new SharedArrayBuffer(length * bytes),
 		type: type.name,
 	}
 }
