@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "rimraf dist ../pkg && webpack --config webpack.config.js",
-    "start": "webpack-dev-server",
-    "build-wasm": "cd .. && wasm-pack build"
+    "start": "npm run build-wasm && webpack-dev-server",
+    "build-wasm": "wasm-pack build --target web -d ./www/pkg .."
   },
   "repository": {
     "type": "git",
@@ -28,7 +28,8 @@
   },
   "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
-    "collision-threads": "file:../pkg"
+    "collision-threads": "file:./pkg/collision_threads.js",
+    "express": "^4.18.1"
   },
   "devDependencies": {
     "@wasm-tool/wasm-pack-plugin": "^1.6.0",

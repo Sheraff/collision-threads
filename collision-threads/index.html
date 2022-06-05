@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        margin: 0;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: black;
+        }
+      }
+
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vmin;
+        height: 100vmin;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="ui"></canvas>
+    <canvas id="main"></canvas>
+    <script src="./collision_threads.js"></script>
+    <script src="./index.js"></script>
+  </body>
+</html>

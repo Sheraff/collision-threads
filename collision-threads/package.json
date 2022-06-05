@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "start": "wasm-pack build --target web -d ../js/wasm rust && node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.1"
+  }
+}
