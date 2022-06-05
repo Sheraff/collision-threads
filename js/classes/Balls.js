@@ -154,14 +154,11 @@ export default class Balls {
 	}
 
 	solveCollisions() {
-		for (let i = 0; i < this.lastBall; i++) {
+		for (let i = 0; i < this.lastBall - 1; i++) {
 			const x1 = FloatAtomics.load(this.x, i)
 			const y1 = FloatAtomics.load(this.y, i)
 			const r1 = Atomics.load(this.r, i)
-			for (let j = 0; j < this.lastBall; j++) {
-				if (i === j) {
-					continue
-				}
+			for (let j = i + 1; j < this.lastBall; j++) {
 				const r2 = Atomics.load(this.r, j)
 				const minDistance = r1 + r2
 				const x2 = FloatAtomics.load(this.x, j)
