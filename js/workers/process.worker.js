@@ -7,11 +7,10 @@
  * @property {Object<string, SharedArrayBuffer>} buffers
  */
 
-import Balls from "../classes/Balls.js"
-import { SUB_STEPS, TARGET_UPS } from "../utils/constants.js"
+import { getEntities, getUps, play as stepPlay, pause as stepPause, start } from "./stepLoop.js"
 
 /** @type {Object<string, EntitySet>} */
-const entities = {}
+
 let paused = false
 let port
 {
@@ -27,6 +26,7 @@ let port
 			started = true
 			start(side)
 			dispatch(port)
+			play()
 			
 		}
 		if (data.type === 'toggle') {
@@ -43,6 +43,7 @@ let port
 }
 
 function dispatch(port){
+	const entities = getEntities()
 	const interval = setInterval(() => {
 		port.postMessage(
 			{
@@ -58,77 +59,26 @@ function dispatch(port){
 	}
 }
 
-/**
- * @param {number} side 
- */
-function start(side) {
-	entities.balls = new Balls(side)
-	entities.balls.initBuffers()
-	entities.balls.initValues()
-	if (!paused) {
-		play()
-	}
-}
-
-const upsArray = []
-let loopTimeoutId
-function loop() {
-	let lastTime = performance.now()
-	const frame = () => {
-		loopTimeoutId = setTimeout(() => {
-			const time = performance.now()
-			const dt = (time - lastTime) / 1000
-			lastTime = time
-			const subDt = dt / SUB_STEPS
-			for (let i = 0; i < SUB_STEPS; i++) {
-				Object.values(entities).forEach((entity) => entity.step(subDt, entities))
-
-				upsArray.push(subDt)
-				if(upsArray.length > 100) {
-					upsArray.shift()
-				}
-			}
-			if (!paused) {
-				frame()
-			}
-		}, 1000 / TARGET_UPS)
-	}
-	frame()
-}
-
-const asapChannel = new MessageChannel()
-function setAsap(fn, delay) {
-	const time = performance.now()
-	asapChannel.port1.onmessage = () => {
-		const now = performance.now()
-		const delta = now - time
-		if (delta < delay) {
-			setAsap(fn, delay - delta)
-		} else {
-			fn()
-		}
-	}
-	asapChannel.port2.postMessage(null)
-}
-
 let metricsTimeoutId
 function metrics() {
 	metricsTimeoutId = setTimeout(() => {
-		const ups = upsArray.length / upsArray.reduce((a, b) => a + b)
+		const ups = getUps()
 		port.postMessage({
 			type: 'ups',
-			ups: Math.round(ups),
+			ups,
 		})
 		metrics()
 	}, 1000)
 }
 
 function pause() {
-	clearTimeout(loopTimeoutId)
+	paused = true
+	stepPause()
 	clearTimeout(metricsTimeoutId)
 }
 
 function play() {
-	loop()
+	paused = false
+	stepPlay()
 	metrics()
 }
