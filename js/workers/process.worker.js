@@ -78,16 +78,14 @@ function loop() {
 		loopTimeoutId = setTimeout(() => {
 			const time = performance.now()
 			const dt = (time - lastTime) / 1000
-			if (dt > 1 / TARGET_UPS) {
-				lastTime = time
-				const subDt = dt / SUB_STEPS
-				for (let i = 0; i < SUB_STEPS; i++) {
-					Object.values(entities).forEach((entity) => entity.step(subDt, entities))
+			lastTime = time
+			const subDt = dt / SUB_STEPS
+			for (let i = 0; i < SUB_STEPS; i++) {
+				Object.values(entities).forEach((entity) => entity.step(subDt, entities))
 
-					upsArray.push(subDt)
-					if(upsArray.length > 100) {
-						upsArray.shift()
-					}
+				upsArray.push(subDt)
+				if(upsArray.length > 100) {
+					upsArray.shift()
 				}
 			}
 			if (!paused) {
