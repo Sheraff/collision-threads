@@ -1,24 +1,28 @@
 import * as draw from "./workers/drawLoop.js";
 import * as step from "./workers/stepLoop.js";
 
-const uiCanvas = document.getElementById("ui");
-const mainCanvas = document.getElementById("main");
-
 const side = Math.min(window.innerHeight, window.innerWidth) // * window.devicePixelRatio
-mainCanvas.height = side
-mainCanvas.width = side
-uiCanvas.height = side
-uiCanvas.width = side
+let main, ui
 
-const main = mainCanvas.getContext("2d")
-const ui = uiCanvas.getContext("2d")
+{
+	const uiCanvas = document.getElementById("ui");
+	const mainCanvas = document.getElementById("main");
+	mainCanvas.height = side
+	mainCanvas.width = side
+	uiCanvas.height = side
+	uiCanvas.width = side
 
-step.start(side)
-draw.start(side, {main, ui})
-const bufferStructure = Object.fromEntries(Object.entries(step.getEntities()).map(([type, entity]) => [type, entity.buffers]))
-draw.updateEntities(bufferStructure)
-metrics()
-play()
+	main = mainCanvas.getContext("2d")
+	ui = uiCanvas.getContext("2d")
+}
+
+{
+	step.start(side)
+	draw.start(side, {main, ui})
+	const bufferStructure = Object.fromEntries(Object.entries(step.getEntities()).map(([type, entity]) => [type, entity.buffers]))
+	draw.updateEntities(bufferStructure)
+	play()
+}
 
 var metricsTimeoutId
 function metrics() {
@@ -32,11 +36,13 @@ function metrics() {
 var playing = true
 function play() {
 	playing = true
+	metrics()
 	step.play()
 	draw.play({main, ui})
 }
 function pause(){
 	playing = false
+	clearTimeout(metricsTimeoutId)
 	step.pause()
 	draw.pause()
 }
