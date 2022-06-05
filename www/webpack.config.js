@@ -1,4 +1,5 @@
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const path = require('path');
 
 module.exports = {
@@ -11,7 +12,10 @@ module.exports = {
   plugins: [
     new CopyWebpackPlugin({
       patterns: ['index.html']
-    })
+    }),
+    new WasmPackPlugin({
+      crateDirectory: path.resolve(__dirname, '..'),
+    }),
   ],
   devServer: {
     headers: {
